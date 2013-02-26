@@ -18,5 +18,5 @@ class bird(pygame.sprite.Sprite):
                 explosion = pygame.image.load('explosion.png')
                 self.image = pygame.transform.smoothscale(explosion,self.size)
             self.rect.top += 0
-            self.next_update_time = current_time + 30
+            self.next_update_time = current_time + 25
     

@@ -5,6 +5,7 @@ from random import randint
 from bird import bird
 from block import Box
 from npQueue import npQueue
+import time as timer
 
 HEIGHT = 1080
 WIDTH = 1920
@@ -28,23 +29,24 @@ FPS = 1000/refresh_rate
 
 k = 1
 meters_per_hscreen = 10.0
-mps = (50/48.0)*k
+mps = 50.0/48
 
-PPM = 1920/meters_per_hscreen
+PPM = 1000/meters_per_hscreen
 MPF = mps/FPS
 PPF = PPM*MPF
+print PPF
 
 meters_per_vscreen = 10.0
 
-PPM_v = 1080/meters_per_vscreen
+PPM_v = 10
 
 TILE_HEIGHT = 50
-TILE_WIDTH = int(PPF * 10/k)
+TILE_WIDTH = int(25*PPF)
 
 def main():
     pygame.init()
     #Initialize the bird
-    b = bird((200,500),(TILE_WIDTH,TILE_HEIGHT))
+    b = bird((100,250),(TILE_WIDTH,TILE_HEIGHT))
     birds = pygame.sprite.RenderUpdates()
     birds.add(b)
     #Create the initial tunnel
@@ -65,7 +67,7 @@ def main():
     pygame.display.update()
     #Start the game loop, the game will continue
     #until the user presses any key
-    count = 0
+    start = 0
     while pygame.event.poll().type != KEYDOWN:
         time = pygame.time.get_ticks()
         collision = False
@@ -75,7 +77,6 @@ def main():
         #Update the locations of the boxes and bird
         boxes.update(PPF, time)
         birds.update(time,collision)
-        print len(boxes)
         #If we need to add onto the tunnel do so
         if (len(boxes) < num_boxes):
             new_block(tunnel_upr, tunnel_lwr, boxes, tunnel_size)
@@ -86,18 +87,16 @@ def main():
         pygame.display.update(birdlist)
         pygame.display.update(rectlist)
         #Wait 30 milliseconds to draw the next frame
-        pygame.time.delay(30)
+        pygame.time.delay(25)
+        start = timer.time()
         if (collision):
             pygame.time.delay(2500)
-            print tunnel_upr.data
-            print tunnel_lwr.data
             break
         #Clearn the screen
         birds.clear(screen, background)
         boxes.clear(screen,background)
-        count += 1
         #draw_boxes(tunnel_extent - 1, tunnel_extent, boxes, tunnel_keeper)
-        
+
 def draw_boxes(x_start, x_end, boxes):
     tunnel_upr = []
     tunnel_lwr = []
@@ -125,7 +124,6 @@ def draw_boxes(x_start, x_end, boxes):
 
 def new_block(tunnel_upr, tunnel_lwr, boxes, tunnel_size):
     x = tunnel_size-1
-    print x
     floor_height = tunnel_lwr.data[tunnel_size - 1]/TILE_HEIGHT
     ceiling_height = -(tunnel_upr.data[tunnel_size - 1] - HEIGHT)/TILE_HEIGHT
     num_blocks = HEIGHT/TILE_HEIGHT
@@ -147,7 +145,6 @@ def new_block(tunnel_upr, tunnel_lwr, boxes, tunnel_size):
     boxes.add(ceiling_b)
     tunnel_upr.pop_add(HEIGHT - TILE_HEIGHT*ceiling_height)
     tunnel_lwr.pop_add(floor_height * TILE_HEIGHT)
-    
 
 if __name__ == "__main__":
     main()
