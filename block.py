@@ -16,7 +16,7 @@ class Box(pygame.sprite.Sprite):
     def update(self,speed, current_time):
         if self.next_update_time < current_time:
             self.rect.left += -5
-            self.next_update_time = current_time + 25
+            self.next_update_time = current_time + 30
             if self.rect.topleft[0] <= -self._width:
                 self.kill()
             

@@ -80,6 +80,7 @@ def gpu_rollout(T,K,U,generator,funcs,trial, terminals_d, states_d, controls_d):
         cuda.Context.synchronize()
     return out_d
 
+
 def func1(T):
     template = """
 
