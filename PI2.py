@@ -51,8 +51,10 @@ class PI2:
         self.t_upr = tunnel_upr
         self.t_lwr = tunnel_lwr
         self.height = height
+        self.block_width = (T-1)/(len(tunnel_upr) - 1) + 1
+        print self.block_width
         end_goal = T*horiz_vel + init_pos[0]
-        func,U_d,upr,lwr = self.func1(T,len(tunnel_upr), end_goal)
+        func,U_d,lwr,upr = self.func1(T,len(tunnel_upr), end_goal)
         cuda.memcpy_htod(upr, tunnel_upr)
         cuda.memcpy_htod(lwr, tunnel_lwr)
         self.funcs = func, U_d, self.func2(T), self.func3(), self.func4()
@@ -135,12 +137,13 @@ class PI2:
             cuda.Context.synchronize()
         return out_d
 
-    def calc_path(self, var, max = 250, plot=False):
-        U_d = gpuarray.zeros(self.T, dtype=np.float32)
+    def calc_path(self, var, max = 1000, plot=False):
+        U_d = gpuarray.zeros(self.T, dtype=np.float32) + .25
         k = 0
         sum = 1000
         while(sum >= 1000 and k < max):
             k += 1
+            print k
             U_d = self.rollout(U_d, var)
             U_final = U_d.get()
             z = np.array([[self.init_pos[0], self.init_pos[1]], [self.speed, 0]])
@@ -148,9 +151,10 @@ class PI2:
             for t in range(self.T):
                 crash = False
                 x_pos = z[0,0]
-                x_pos_compare = x_pos/(self.obj_width*1.0)
-                x_pc_floor = math.floor(x_pos_compare)
-                x_pc_ceil = math.ceil(x_pos_compare)
+                x_pos_floor = x_pos
+                x_pos_ceil = (x_pos + self.obj_width)
+                x_pc_floor = math.floor(x_pos_floor)
+                x_pc_ceil = math.floor(x_pos_ceil)
                 y_top = z[0,1]
                 y_bottom = y_top - self.obj_height
                 if (self.t_upr[x_pc_floor] < y_top):
@@ -183,18 +187,21 @@ class PI2:
         gca()
         obj_width = self.obj_width
         obj_height = self.obj_height
-        blocks = int(round((self.T/self.obj_width *1.0)))
+        blocks = int(round((self.T/self.block_width *1.0)))
         for j in range(blocks):
             gca().add_patch(Rectangle((j*obj_width, 0), obj_width, self.t_lwr[j]))
             gca().add_patch(Rectangle((j*obj_width, self.t_upr[j]), obj_width, self.height - self.t_upr[j]))
         z = np.array([[self.init_pos[0], self.init_pos[1]], [self.speed, 0]])
+        plt.scatter(z[0,0],z[0,1], c = 'b')
+        for t in range(10):
+            print U_final[t]
         for t in range(self.T):
-            plt.scatter(z[0,0],z[0,1], c = 'b')
             crash = False
             x_pos = z[0,0]
-            x_pos_compare = x_pos/(self.obj_width*1.0)
-            x_pc_floor = math.floor(x_pos_compare)
-            x_pc_ceil = math.ceil(x_pos_compare)
+            x_pos_floor = x_pos/(self.block_width*1.0)
+            x_pos_ceil = (x_pos + obj_width)/self.block_width*1.0
+            x_pc_floor = math.floor(x_pos_floor)
+            x_pc_ceil = math.floor(x_pos_ceil)
             y_top = z[0,1]
             y_bottom = y_top - self.obj_height
             if (self.t_upr[x_pc_floor] < y_top):
@@ -210,14 +217,15 @@ class PI2:
                 z[1,1] = 0
             if (not crash):
                 z[1,1] += self.gravity + U_final[t]
-            z[0,0] += z[1,0]
-            z[0,1] += z[1,1]
+                z[0,0] += z[1,0]
+                z[0,1] += z[1,1]
             if (z[0,1] <= 0):
                 z[0,1] = 0
                 z[1,1] = 0
             if (z[0,1] >= self.height):
                 z[0,1] = self.height
                 z[1,1] = 0
+            plt.scatter(z[0,0],z[0,1], c = 'b')
         plt.show()
 
 
@@ -238,9 +246,8 @@ class PI2:
     __device__ __constant__ float course_upr[LENGTH];
  
     __device__ int test_crash(float x_pos,float y_pos) {
-      float x_pos_compare = x_pos/(1.0*OBJ_WIDTH);
-      int x_pc_floor = floor(x_pos_compare);
-      int x_pc_ceil = ceil(x_pos_compare);
+      int x_pc_floor = floor(x_pos);
+      int x_pc_ceil = floor(x_pos + OBJ_WIDTH);
       float y_top = y_pos;
       float y_bottom = y_top - OBJ_HEIGHT;
       int crash = 0;
@@ -261,12 +268,12 @@ class PI2:
     __device__ float get_cost(float x, float y, float u) {
       float cost = 0;
       int crash = test_crash(x,y);
-      cost = crash;
+      cost = 1.0*crash;
       return cost;
     }
 
     __device__ float get_terminal(float x, float y) {
-      return 10*sqrt((END_GOAL-x)*(END_GOAL-x));
+      return 5000*sqrt((END_GOAL-x)*(END_GOAL-x));
     }
 
     /**************************************************
@@ -323,7 +330,7 @@ class PI2:
       }
     }
 
-    """%(T,length,end_goal,self.obj_height, self.obj_width,self.height)
+    """%(T,length,end_goal,self.obj_height, self.obj_width, self.height)
         mod = SourceModule(template)
         func = mod.get_function("rollout_kernel")
         U_d = mod.get_global("U_d")[0]
@@ -355,7 +362,7 @@ class PI2:
         }
       }
       __syncthreads();
-      float lambda = -1.0/50;
+      float lambda = -1.0/1000;
       states[bdx*T+tdx] = exp(lambda*s_costs[tdx]);
     }
 
@@ -421,20 +428,91 @@ class PI2:
         return mod.get_function("multiplier")
 
 if __name__ == "__main__":
-    T = 10
-    K = 100
-    v = 1.0
-    g = -10.0
+    T = 200
+    K = 10000
+    v = .05
+    g = -.5
     width = 1.0
     height = 1.0
-    pos = (0,500)
-    tunnel_upr = np.zeros(10)
-    tunnel_lwr = np.zeros(10)
+    pos = (0,50)
+    tunnel_upr = np.zeros(11)
+    tunnel_lwr = np.zeros(11)
     tunnel_lwr = np.require(tunnel_lwr, dtype = np.float32, requirements = ['A','O','W','C'])
     tunnel_upr = np.require(tunnel_upr, dtype = np.float32, requirements = ['A','O','W','C'])
-    screen_height = 1000
-    tunnel_upr = tunnel_upr + 800
-    tunnel_lwr = tunnel_lwr + 100
-    tunnel_upr[5] = 800
+    screen_height = 100
+    tunnel_upr = tunnel_upr + 80
+    tunnel_lwr = tunnel_lwr + 20
     gpu_comp = PI2(T,K,v,g,width,height,pos,tunnel_upr,tunnel_lwr, screen_height)
-    gpu_comp.calc_path(10,plot = True)
+    gpu_comp.calc_path(.1,plot = False, max = 25)
+
+    """
+    Rudimentary version of multi-PI2 for testing purposes
+    """
+    T = 400
+    K = 10000
+    v = .05
+    g = -.5
+    width = 1.0
+    height = 1.0
+    pos = (0,50)
+    tunnel_upr = np.zeros(21)
+    tunnel_lwr = np.zeros(21)
+    tunnel_lwr = np.require(tunnel_lwr, dtype = np.float32, requirements = ['A','O','W','C'])
+    tunnel_upr = np.require(tunnel_upr, dtype = np.float32, requirements = ['A','O','W','C']) + 100
+    screen_height = 100
+    for t in range(10):
+        tunnel_upr[t] = 80
+        tunnel_lwr[t] = 20
+    gpu_comp = PI2(T,K,v,g,width,height,pos,tunnel_upr,tunnel_lwr, screen_height)
+    
+    U = gpuarray.zeros(T, dtype=np.float32) + .5
+    gca()
+    blocks = 10
+    for j in range(blocks):
+        gca().add_patch(Rectangle((j*width, 0),width, tunnel_lwr[j]))
+        gca().add_patch(Rectangle((j*width, tunnel_upr[j]), width, screen_height - tunnel_upr[j]))
+    z = np.array([[pos[0], pos[1]], [v, 0]])
+    plt.scatter(z[0,0],z[0,1], c = 'b')
+    U = gpuarray.zeros(T, np.float32) + .5
+    for t in range(T):
+        crash = False
+        x_pos = z[0,0]
+        x_pos_floor = x_pos
+        x_pos_ceil = x_pos + width
+        x_pc_floor = math.floor(x_pos_floor)
+        x_pc_ceil = math.floor(x_pos_ceil)
+        y_top = z[0,1]
+        y_bottom = y_top - height
+        if (tunnel_upr[x_pc_floor] < y_top):
+            crash = True
+        if (tunnel_upr[x_pc_ceil] < y_top):
+            crash = True
+        if (y_bottom < tunnel_lwr[x_pc_floor]):
+            crash = True
+        if (y_bottom < tunnel_lwr[x_pc_ceil]):
+            crash = True
+        if (crash):
+            z[1,0] = 0
+            z[1,1] = 0
+        if (not crash):
+            gpu_comp.init_pos = z[0,0],z[0,1]
+            U = gpu_comp.rollout(U,.1)
+            U_new = U.get()
+            print U_new[0]
+            z[1,1] += g + U_new[0]
+            z[0,0] += z[1,0]
+            z[0,1] += z[1,1]
+        if (z[0,1] <= 0):
+            z[0,1] = 0
+            z[1,1] = 0
+        if (z[0,1] >= screen_height):
+            z[0,1] = screen_height
+            z[1,1] = 0
+        plt.scatter(z[0,0],z[0,1], c = 'b')
+    plt.show()
+    
+        
+
+
+ 
+
