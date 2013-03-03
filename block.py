@@ -1,4 +1,5 @@
 import pygame
+import math
 
 class Box(pygame.sprite.Sprite):
     
@@ -8,6 +9,7 @@ class Box(pygame.sprite.Sprite):
         self.image.fill(pygame.Color('green'))
         self.rect = self.image.get_rect()
         self.rect.topleft = initial_pos
+        self.left = initial_pos[0]
         self.next_update_time = 0
         self._width = width
         self._height = height
@@ -15,7 +17,8 @@ class Box(pygame.sprite.Sprite):
 
     def update(self,speed, current_time):
         if self.next_update_time < current_time:
-            self.rect.left += -5
+            self.left += -speed
+            self.rect.left = math.floor(self.left)
             self.next_update_time = current_time + 30
             if self.rect.topleft[0] <= -self._width:
                 self.kill()

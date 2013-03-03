@@ -3,12 +3,13 @@ import numpy as np
 from pygame.locals import *
 from random import randint
 from bird import bird
+from pickled_bird import p_bird
 from block import Box
 import time as timer
-from pycuda import gpuarray
+import sys
 
-HEIGHT = np.float32(500)
-WIDTH = np.float32(500)
+HEIGHT = 400
+WIDTH = 300
 """
 Define the horizontal veloctiy and vertical dynamics parameters
 
@@ -26,29 +27,35 @@ fps = frames per second
 hPPM = horizontal pixels per frame
 vPPM = vertical pixels per frame
 """
-meters_per_horiz_screen = np.float32(5.0)
-meters_per_vert_screen = np.float32(100.0)
+meters_per_horiz_screen = 5.0
+meters_per_vert_screen = 100.0
 
 pixels_per_horiz_meter = WIDTH/meters_per_horiz_screen
 pixels_per_vert_meter = HEIGHT/meters_per_vert_screen
 
 fps = 30
 
-mpf = np.float32(.05)
-gpf = np.float32(.5)
+mpf = .05
+gpf = .5
 hPPF = mpf * pixels_per_horiz_meter
 vPPF = gpf * pixels_per_vert_meter
-print vPPF
 
-def main():
+def main(mode = 'normal', name = 'std.pkl'):
     pygame.init()
     #Create the tunnel
     tunnel_upr, tunnel_lwr = create_tunnel(21)
     boxes = pygame.sprite.RenderUpdates()
     draw_tunnel(tunnel_upr, tunnel_lwr, boxes)
-    #Initialize the bird
-    b = bird(mpf, gpf, vPPF,pixels_per_vert_meter, pixels_per_horiz_meter, HEIGHT, WIDTH, tunnel_upr,
-             tunnel_lwr)
+    #Initialize, create and store, or load the bird
+    if (mode == 'normal' or mode == 'create'):
+        b = bird(mpf, gpf, vPPF,pixels_per_vert_meter, 
+                 pixels_per_horiz_meter, HEIGHT, WIDTH, tunnel_upr,
+                 tunnel_lwr)
+        if (mode == 'create'):
+            b.store(name)
+            sys.exit()
+    elif(mode == 'load'):
+        b = p_bird(vPPF, pixels_per_horiz_meter, HEIGHT, name)
     birds = pygame.sprite.RenderUpdates()
     birds.add(b)
     #Initialize the screen to a white background
@@ -116,4 +123,4 @@ def draw_tunnel(tunnel_upr, tunnel_lwr,boxes):
         boxes.add(ceiling_b)
 
 if __name__ == "__main__":
-    main()
+    main(mode = 'load')

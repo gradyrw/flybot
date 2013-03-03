@@ -135,6 +135,7 @@ class PI2:
         return out_d
 
     def calc_path(self, var, max = 1000, plot=False):
+        print self.obj_width
         U_d = gpuarray.zeros(self.T, dtype=np.float32) + .5
         k = 0
         sum = 1000
@@ -193,12 +194,12 @@ class PI2:
         for t in range(self.T):
             crash = False
             x_pos = z[0,0]
-            x_pos_floor = x_pos/(self.block_width*1.0)
-            x_pos_ceil = (x_pos + obj_width)/self.block_width*1.0
+            x_pos_floor = x_pos
+            x_pos_ceil = x_pos + obj_width
             x_pc_floor = math.floor(x_pos_floor)
             x_pc_ceil = math.floor(x_pos_ceil)
             y_top = z[0,1]
-            y_bottom = y_top + self.obj_height
+            y_bottom = y_top - self.obj_height
             if (self.t_upr[x_pc_floor] < y_top):
                 crash = True
             if (self.t_upr[x_pc_ceil] < y_top):

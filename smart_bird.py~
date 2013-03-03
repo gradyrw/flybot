@@ -1,0 +1,19 @@
+import pygame
+import numpy as np
+from random import gauss
+import pycuda.driver as cuda
+import pycuda.autoinit
+from pycuda.compiler import SourceModule
+from pycuda.curandom import *
+from pycuda import gpuarray
+import time
+
+class smart_bird(pygame.sprite.Sprite):
+    
+    def __init__(self, t_height, t_width, hPPF, gravity, tunnel_upr, tunnel_lwr):
+        pygame.sprite.Sprite.__init__(self)
+        bird = pygame.image.load('flying-bird.png')
+        self.size = (t_width, t_width)
+        self.image = pygame.transform.smoothscale(bird,size)
+        self.rect = self.image.get_rect()
+        self.rect.topleft = (
