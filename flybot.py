@@ -4,12 +4,11 @@ from pygame.locals import *
 from random import randint
 from bird import bird
 from block import Box
-from npQueue import npQueue
 import time as timer
 from pycuda import gpuarray
 
-HEIGHT = 500
-WIDTH = 500
+HEIGHT = np.float32(500)
+WIDTH = np.float32(500)
 """
 Define the horizontal veloctiy and vertical dynamics parameters
 
@@ -27,36 +26,31 @@ fps = frames per second
 hPPM = horizontal pixels per frame
 vPPM = vertical pixels per frame
 """
-meters_per_horiz_screen = 10.0
-meters_per_vert_screen = 10.0
-mps = 1.0
-gravity = 10
+meters_per_horiz_screen = np.float32(5.0)
+meters_per_vert_screen = np.float32(100.0)
+
+pixels_per_horiz_meter = WIDTH/meters_per_horiz_screen
+pixels_per_vert_meter = HEIGHT/meters_per_vert_screen
 
 fps = 30
 
-hPPF = mps * WIDTH/ (meters_per_horiz_screen * fps)
-vPPF = gravity*HEIGHT/(meters_per_vert_screen * fps**2)
-
-TILE_HEIGHT = 50
-TILE_WIDTH = 50
+mpf = np.float32(.05)
+gpf = np.float32(.5)
+hPPF = mpf * pixels_per_horiz_meter
+vPPF = gpf * pixels_per_vert_meter
+print vPPF
 
 def main():
     pygame.init()
+    #Create the tunnel
+    tunnel_upr, tunnel_lwr = create_tunnel(21)
+    boxes = pygame.sprite.RenderUpdates()
+    draw_tunnel(tunnel_upr, tunnel_lwr, boxes)
     #Initialize the bird
-    b = bird((100,250),(TILE_WIDTH,TILE_HEIGHT))
+    b = bird(mpf, gpf, vPPF,pixels_per_vert_meter, pixels_per_horiz_meter, HEIGHT, WIDTH, tunnel_upr,
+             tunnel_lwr)
     birds = pygame.sprite.RenderUpdates()
     birds.add(b)
-    #Create the initial tunnel
-    tunnel_size = WIDTH/TILE_WIDTH + 3
-    boxes = pygame.sprite.RenderUpdates()
-    upr, lwr = draw_boxes(tunnel_size,boxes)
-    num_boxes = len(boxes)
-    #Intialize numpy array to keep track of tunnel information in a form
-    #CUDA can read
-    tunnel_upr = np.require(upr, dtype=np.float32, requirements=['A','O','W','C'])
-    tunnel_lwr = np.require(lwr, dtype=np.float32, requirements=['A','O','W','C'])
-    #Create the bird
-    b = bird(TILE_HEIGHT, TILE_WIDTH, hPPF, -vPPF, tunnel_upr, tunnel_lrw, HEIGHT)
     #Initialize the screen to a white background
     white = [255,255,255]
     screen = pygame.display.set_mode([WIDTH,HEIGHT])
@@ -75,15 +69,15 @@ def main():
             collision = True
         #Update the locations of the boxes and bird
         boxes.update(hPPF, time)
-        birds.update(time,collision,gravity)
+        birds.update(time, collision)
         #Draw everythin on the screen
-        birdlist = birds.draw(screen)
         rectlist = boxes.draw(screen)
+        birdlist = birds.draw(screen)
         #Update the tunnel, and birds
-        pygame.display.update(birdlist)
         pygame.display.update(rectlist)
+        pygame.display.update(birdlist)
         if (collision):
-            birds.update(time,collision, 0)
+            birds.update(time,collision)
             pygame.display.update(birds.draw(screen))
             while pygame.event.poll().type != KEYDOWN:
                 True
@@ -92,31 +86,34 @@ def main():
         birds.clear(screen, background)
         boxes.clear(screen,background)
 
-def draw_boxes(length,boxes):
-    tunnel_upr = []
-    tunnel_lwr = []
-    num_blocks = (WIDTH/TILE_WIDTH - 1) + 1
-    ceiling_height = 0
-    floor_height = 0
-    ceiling_max = int(num_blocks * 3/5.0)
-    floor_max = int(num_blocks * 3/5.0)
-    for x in range(length):
-        #Add tunnel info into tunnel keeper
-        tunnel_lwr.append(floor_height*TILE_HEIGHT)
-        tunnel_upr.append(HEIGHT - TILE_HEIGHT*ceiling_height)
-        #Define the ceiling parameters
-        ceiling_b = Box((x*TILE_WIDTH,0), TILE_HEIGHT*ceiling_height, TILE_WIDTH)
-        #ceiling_height = randint(max(1,ceiling_height-2),min(ceiling_max,ceiling_height+2))
-        #Define the floor parameters
-        floor_b = Box((x*TILE_WIDTH,HEIGHT - TILE_HEIGHT*floor_height), TILE_HEIGHT*floor_height, TILE_WIDTH)
-        #floor_height = randint(max(1, floor_height -2), min(floor_max, floor_height+2))
-        #Make sure there's an opening to fly throguh
-        #if (floor_height + ceiling_height > num_blocks - 8):
-        #    floor_height = num_blocks - ceiling_height - 8
-        ceiling_height = 2
-        floor_height = 2
+def create_tunnel(length):
+    tunnel_upr = np.zeros(length+2) + 80
+    tunnel_lwr = np.zeros(length+2) + 20
+    for x in range(length+2):
+        tunnel_upr[x] = 80
+        tunnel_lwr[x] = 10
+    tunnel_lwr[3] = 20
+    tunnel_lwr[4] = 30
+    tunnel_lwr[5] = 50
+    tunnel_upr[7] = 75
+    tunnel_upr[8] = 70
+    tunnel_upr[9] = 65
+    for x in range(10,15):
+        tunnel_lwr[x] = 10*(x%10)
+    for x in range(16,20):
+        tunnel_lwr[x] = 50
+    tunnel_upr = np.require(tunnel_upr, dtype=np.float32, requirements = ['A', 'O', 'W', 'C'])
+    tunnel_lwr = np.require(tunnel_lwr, dtype = np.float32, requirements = ['A','O','W','C'])
+    return tunnel_upr, tunnel_lwr
+
+def draw_tunnel(tunnel_upr, tunnel_lwr,boxes):
+    for x in range(len(tunnel_lwr)):
+        ceil = HEIGHT - tunnel_upr[x] * pixels_per_vert_meter
+        floor = tunnel_lwr[x] * pixels_per_vert_meter
+        ceiling_b = Box((x*pixels_per_horiz_meter, 0), int(ceil), int(pixels_per_horiz_meter))
+        floor_b = Box((x*pixels_per_horiz_meter, HEIGHT - floor), int(floor),int(pixels_per_horiz_meter))
         boxes.add(floor_b)
         boxes.add(ceiling_b)
-    return tunnel_upr, tunnel_lwr
+
 if __name__ == "__main__":
     main()
