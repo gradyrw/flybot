@@ -8,8 +8,8 @@ from block import Box
 import time as timer
 import sys
 
-HEIGHT = 400
-WIDTH = 300
+HEIGHT = 1080
+WIDTH = 1920
 """
 Define the horizontal veloctiy and vertical dynamics parameters
 
@@ -98,17 +98,17 @@ def create_tunnel(length):
     tunnel_lwr = np.zeros(length+2) + 20
     for x in range(length+2):
         tunnel_upr[x] = 80
-        tunnel_lwr[x] = 10
-    tunnel_lwr[3] = 20
-    tunnel_lwr[4] = 30
-    tunnel_lwr[5] = 50
-    tunnel_upr[7] = 75
-    tunnel_upr[8] = 70
-    tunnel_upr[9] = 65
+        tunnel_lwr[x] = 20
+    tunnel_lwr[3] = 40
+    tunnel_lwr[4] = 50
+    tunnel_lwr[5] = 60
+    tunnel_upr[7] = 70
+    tunnel_upr[8] = 60
+    tunnel_upr[9] = 50
     for x in range(10,15):
-        tunnel_lwr[x] = 10*(x%10)
-    for x in range(16,20):
-        tunnel_lwr[x] = 50
+        tunnel_lwr[x] = 10 + 10*(x%10)
+    for x in range(15,20):
+        tunnel_lwr[x] = 60
     tunnel_upr = np.require(tunnel_upr, dtype=np.float32, requirements = ['A', 'O', 'W', 'C'])
     tunnel_lwr = np.require(tunnel_lwr, dtype = np.float32, requirements = ['A','O','W','C'])
     return tunnel_upr, tunnel_lwr
@@ -123,4 +123,4 @@ def draw_tunnel(tunnel_upr, tunnel_lwr,boxes):
         boxes.add(ceiling_b)
 
 if __name__ == "__main__":
-    main(mode = 'load')
+    main(mode = 'create', name = 'ex1.pkl')
