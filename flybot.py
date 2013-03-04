@@ -94,7 +94,7 @@ def main(mode = 'normal', name = 'std.pkl'):
         boxes.clear(screen,background)
 
 def create_tunnel(length):
-    tunnel_upr, tunnel_lwr = tunnel1()
+    tunnel_upr, tunnel_lwr = tunnel3()
     tunnel_upr = np.require(tunnel_upr, dtype=np.float32, requirements = ['A', 'O', 'W', 'C'])
     tunnel_lwr = np.require(tunnel_lwr, dtype = np.float32, requirements = ['A','O','W','C'])
     return tunnel_upr, tunnel_lwr
@@ -166,6 +166,55 @@ def tunnel2():
     tunnel_upr[22] = 75
     return tunnel_upr, tunnel_lwr
 
+def tunnel3():
+    tunnel_upr = np.zeros(23)
+    tunnel_lwr = np.zeros(23)
+    for x in range(3):
+        tunnel_lwr[x] = 20
+        tunnel_upr[x] = 80
+    tunnel_lwr[3] = 20 
+    tunnel_upr[3] = 80
+    tunnel_lwr[4] = 20 
+    tunnel_upr[4] = 70
+    tunnel_lwr[5] = 20
+    tunnel_upr[5] = 60
+    tunnel_lwr[6] = 20
+    tunnel_upr[6] = 50
+    tunnel_lwr[7] = 20
+    tunnel_upr[7] = 60
+    tunnel_lwr[8] = 20
+    tunnel_upr[8] = 70
+    tunnel_lwr[9] = 20
+    tunnel_upr[9] = 80
+    tunnel_lwr[10] = 30
+    tunnel_upr[10] = 80
+    tunnel_lwr[11] = 40
+    tunnel_upr[11] = 80
+    tunnel_lwr[12] = 40
+    tunnel_upr[12] = 80
+    tunnel_lwr[13] = 20
+    tunnel_upr[13] = 80
+    tunnel_lwr[14] = 20
+    tunnel_upr[14] = 70
+    tunnel_lwr[15] = 20
+    tunnel_upr[15] = 60
+    tunnel_lwr[16] = 10
+    tunnel_upr[16] = 50
+    tunnel_lwr[17] = 10
+    tunnel_upr[17] = 40
+    tunnel_lwr[18] = 10
+    tunnel_upr[18] = 50
+    tunnel_lwr[19] = 10
+    tunnel_upr[19] = 60
+    tunnel_lwr[20] = 10
+    tunnel_upr[20] = 70
+    tunnel_lwr[21] = 10
+    tunnel_upr[21] = 80
+    tunnel_lwr[22] = 10
+    tunnel_upr[22] = 80
+    return tunnel_upr, tunnel_lwr
+    
+
 def draw_tunnel(tunnel_upr, tunnel_lwr,boxes):
     for x in range(len(tunnel_lwr)):
         ceil = HEIGHT - tunnel_upr[x] * pixels_per_vert_meter
@@ -176,4 +225,4 @@ def draw_tunnel(tunnel_upr, tunnel_lwr,boxes):
         boxes.add(ceiling_b)
 
 if __name__ == "__main__":
-    main(mode = 'create', name = 'ex2.pkl')
+    main(mode = 'create', name = 'ex3.pkl')

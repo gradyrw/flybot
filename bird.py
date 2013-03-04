@@ -7,7 +7,7 @@ class bird(pygame.sprite.Sprite):
     
     def __init__(self, mpf, gpf,vPPF, ppvm, pphm, height, width, upr, lwr):
         initial_position = (2*pphm,height/2)
-        size = (25,25)
+        size = (10,10)
         mv_size = size[1]/ppvm*1.0
         mh_size = size[0]/pphm*1.0
         print mv_size
@@ -28,7 +28,7 @@ class bird(pygame.sprite.Sprite):
         T = int((len(upr)-1)/mpf)
         print T
         thinker = brain(T, 10000, mpf, -gpf, mh_size, mv_size, (0,50), 1,upr,lwr,height/ppvm)
-        self.controls = thinker.calc_path(.1, plot=True,max=5000)*ppvm
+        self.controls = thinker.calc_path(.3, plot=True,max=2500)*ppvm
         self.count = 0
         self.top = initial_position[1]
         
