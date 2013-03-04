@@ -94,9 +94,15 @@ def main(mode = 'normal', name = 'std.pkl'):
         boxes.clear(screen,background)
 
 def create_tunnel(length):
-    tunnel_upr = np.zeros(length+2) + 80
-    tunnel_lwr = np.zeros(length+2) + 20
-    for x in range(length+2):
+    tunnel_upr, tunnel_lwr = tunnel1()
+    tunnel_upr = np.require(tunnel_upr, dtype=np.float32, requirements = ['A', 'O', 'W', 'C'])
+    tunnel_lwr = np.require(tunnel_lwr, dtype = np.float32, requirements = ['A','O','W','C'])
+    return tunnel_upr, tunnel_lwr
+
+def tunnel1():
+    tunnel_upr = np.zeros(23)
+    tunnel_lwr = np.zeros(23)
+    for x in range(23):
         tunnel_upr[x] = 80
         tunnel_lwr[x] = 20
     tunnel_lwr[3] = 40
@@ -107,10 +113,57 @@ def create_tunnel(length):
     tunnel_upr[9] = 50
     for x in range(10,15):
         tunnel_lwr[x] = 10 + 10*(x%10)
+    tunnel_lwr[10] = 20
     for x in range(15,20):
         tunnel_lwr[x] = 60
-    tunnel_upr = np.require(tunnel_upr, dtype=np.float32, requirements = ['A', 'O', 'W', 'C'])
-    tunnel_lwr = np.require(tunnel_lwr, dtype = np.float32, requirements = ['A','O','W','C'])
+    return tunnel_upr, tunnel_lwr
+
+def tunnel2():
+    tunnel_upr = np.zeros(23)
+    tunnel_lwr = np.zeros(23)
+    for x in range(3):
+        tunnel_lwr[x] = 10
+        tunnel_upr[x] = 90
+    tunnel_lwr[3] = 30 
+    tunnel_upr[3] = 70
+    tunnel_lwr[4] = 30 
+    tunnel_upr[4] = 60
+    tunnel_lwr[5] = 20
+    tunnel_upr[5] = 60
+    tunnel_lwr[6] = 10
+    tunnel_upr[6] = 50
+    tunnel_lwr[7] = 10
+    tunnel_upr[7] = 60
+    tunnel_lwr[8] = 10
+    tunnel_upr[8] = 70
+    tunnel_lwr[9] = 40
+    tunnel_upr[9] = 80
+    tunnel_lwr[10] = 50
+    tunnel_upr[10] = 90
+    tunnel_lwr[11] = 20
+    tunnel_upr[11] = 90
+    tunnel_lwr[12] = 20
+    tunnel_upr[12] = 90
+    tunnel_lwr[13] = 30
+    tunnel_upr[13] = 60
+    tunnel_lwr[14] = 30
+    tunnel_upr[14] = 80
+    tunnel_lwr[15] = 40
+    tunnel_upr[15] = 90
+    tunnel_lwr[16] = 50
+    tunnel_upr[16] = 90
+    tunnel_lwr[17] = 60
+    tunnel_upr[17] = 90
+    tunnel_lwr[18] = 70
+    tunnel_upr[18] = 90
+    tunnel_lwr[19] = 60
+    tunnel_upr[19] = 90
+    tunnel_lwr[20] = 50
+    tunnel_upr[20] = 85
+    tunnel_lwr[21] = 40
+    tunnel_upr[21] = 80
+    tunnel_lwr[22] = 10
+    tunnel_upr[22] = 75
     return tunnel_upr, tunnel_lwr
 
 def draw_tunnel(tunnel_upr, tunnel_lwr,boxes):
@@ -123,4 +176,4 @@ def draw_tunnel(tunnel_upr, tunnel_lwr,boxes):
         boxes.add(ceiling_b)
 
 if __name__ == "__main__":
-    main(mode = 'create', name = 'ex1.pkl')
+    main(mode = 'create', name = 'ex2.pkl')
