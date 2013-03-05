@@ -40,7 +40,7 @@ gpf = .5
 hPPF = mpf * pixels_per_horiz_meter
 vPPF = gpf * pixels_per_vert_meter
 
-def main(mode = 'normal', name = 'std.pkl'):
+def main(mode = 'normal', name = 'std.pkl', animate=True):
     pygame.init()
     #Create the tunnel
     tunnel_upr, tunnel_lwr = create_tunnel(21)
@@ -56,6 +56,8 @@ def main(mode = 'normal', name = 'std.pkl'):
             sys.exit()
     elif(mode == 'load'):
         b = p_bird(vPPF, pixels_per_horiz_meter, HEIGHT, name)
+    if (animate==False):
+        sys.exit()
     birds = pygame.sprite.RenderUpdates()
     birds.add(b)
     #Initialize the screen to a white background
@@ -94,7 +96,7 @@ def main(mode = 'normal', name = 'std.pkl'):
         boxes.clear(screen,background)
 
 def create_tunnel(length):
-    tunnel_upr, tunnel_lwr = tunnel3()
+    tunnel_upr, tunnel_lwr = tunnel2()
     tunnel_upr = np.require(tunnel_upr, dtype=np.float32, requirements = ['A', 'O', 'W', 'C'])
     tunnel_lwr = np.require(tunnel_lwr, dtype = np.float32, requirements = ['A','O','W','C'])
     return tunnel_upr, tunnel_lwr
@@ -136,9 +138,9 @@ def tunnel2():
     tunnel_upr[7] = 60
     tunnel_lwr[8] = 10
     tunnel_upr[8] = 70
-    tunnel_lwr[9] = 40
+    tunnel_lwr[9] = 30
     tunnel_upr[9] = 80
-    tunnel_lwr[10] = 50
+    tunnel_lwr[10] = 30
     tunnel_upr[10] = 90
     tunnel_lwr[11] = 20
     tunnel_upr[11] = 90
@@ -225,4 +227,4 @@ def draw_tunnel(tunnel_upr, tunnel_lwr,boxes):
         boxes.add(ceiling_b)
 
 if __name__ == "__main__":
-    main(mode = 'create', name = 'ex3.pkl')
+    main(mode = 'create', name = 'learner8.pkl', animate=False)

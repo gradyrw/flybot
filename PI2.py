@@ -140,7 +140,6 @@ class PI2:
         k = 0
         sum = 1000
         while(sum >= 1000 and k < max):
-            k += 1
             print k
             U_d = self.rollout(U_d, var)
             U_final = U_d.get()
@@ -175,7 +174,10 @@ class PI2:
                 if (z[0,1] >= self.height):
                     z[0,1] = self.height
                     z[1,1] = 0
-        
+            if (k == 7):
+                self.plotter(U_final)
+                return U_final
+            k += 1
         print k
         if (plot):
             self.plotter(U_final)
@@ -250,24 +252,28 @@ class PI2:
       int x_pc_ceil = floor(x_pos + OBJ_WIDTH);
       float y_top = y_pos;
       float y_bottom = y_top - OBJ_HEIGHT;
-      int crash = 0;
-      if (course_upr[x_pc_floor] <= y_top) {
-        crash = 1;
+      float crash = 0;
+      float tl = course_upr[x_pc_floor];
+      float tr = course_upr[x_pc_ceil];
+      float bl = course_lwr[x_pc_floor];
+      float br = course_lwr[x_pc_ceil];
+      if (tl <= y_top) {
+        crash += y_top - tl;
       }
-      else if (course_upr[x_pc_ceil] <= y_top) {
-        crash = 1;
+      else if (tr <= y_top) {
+        crash += y_top - tr;
       }
-      else if (course_lwr[x_pc_floor] >= y_bottom) {
-        crash = 1;
+      else if (bl >= y_bottom) {
+        crash += bl - y_bottom;
       }
       else if (course_lwr[x_pc_ceil] >= y_bottom) {
-        crash = 1;
+        crash += br - y_bottom;
       }
       return crash;
    }
     __device__ float get_cost(float x, float y, float u) {
       float cost = 0;
-      int crash = test_crash(x,y);
+      float crash = test_crash(x,y);
       cost = 1.0*crash;
       return cost;
     }
@@ -298,7 +304,7 @@ class PI2:
       __syncthreads();
 
       if (tdx == 0) {
-        int crash = 0;
+        float crash = 0;
         int i;
         for (i = 0; i < T; i++) {
           if (crash == 0) {
