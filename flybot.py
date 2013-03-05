@@ -96,7 +96,7 @@ def main(mode = 'normal', name = 'std.pkl', animate=True):
         boxes.clear(screen,background)
 
 def create_tunnel(length):
-    tunnel_upr, tunnel_lwr = tunnel2()
+    tunnel_upr, tunnel_lwr = tunnel1()
     tunnel_upr = np.require(tunnel_upr, dtype=np.float32, requirements = ['A', 'O', 'W', 'C'])
     tunnel_lwr = np.require(tunnel_lwr, dtype = np.float32, requirements = ['A','O','W','C'])
     return tunnel_upr, tunnel_lwr
@@ -108,7 +108,7 @@ def tunnel1():
         tunnel_upr[x] = 80
         tunnel_lwr[x] = 20
     tunnel_lwr[3] = 40
-    tunnel_lwr[4] = 50
+    tunnel_lwr[4] = 40
     tunnel_lwr[5] = 60
     tunnel_upr[7] = 70
     tunnel_upr[8] = 60
@@ -227,4 +227,4 @@ def draw_tunnel(tunnel_upr, tunnel_lwr,boxes):
         boxes.add(ceiling_b)
 
 if __name__ == "__main__":
-    main(mode = 'create', name = 'learner8.pkl', animate=False)
+    main(mode = 'create', name = 'demo70.pkl', animate=False)

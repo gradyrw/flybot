@@ -10,6 +10,7 @@ from pycuda.curandom import *
 from pycuda import gpuarray
 import math
 import time
+import pickle
 
 """
 PI2 class for performing the PI2 algorithm in the context of tunnel navigation
@@ -137,6 +138,7 @@ class PI2:
     def calc_path(self, var, max = 1000, plot=False):
         print self.obj_width
         U_d = gpuarray.zeros(self.T, dtype=np.float32) + .5
+        U_TRIALS = []
         k = 0
         sum = 1000
         while(sum >= 1000 and k < max):
@@ -174,13 +176,20 @@ class PI2:
                 if (z[0,1] >= self.height):
                     z[0,1] = self.height
                     z[1,1] = 0
-            if (k == 7):
-                self.plotter(U_final)
-                return U_final
+            if (k % 10 == 0):
+                U_TRIALS.append(U_final)
             k += 1
+        U_TRIALS.append(U_final)
         print k
-        if (plot):
-            self.plotter(U_final)
+        if (k < 61):
+            ind = 0
+            for U in U_TRIALS:
+                name = "demo" + str(ind) + ".pkl"
+                ind += 1
+                output = open(name, 'wb')
+                pickle.dump(U, output)
+                output.close()
+                self.plotter(U)
         return U_final
     
     def plotter(self, U_final):
