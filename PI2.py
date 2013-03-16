@@ -1,3 +1,10 @@
+"""
+Grady Williams
+March 1, 2013
+
+GPU Implementation of PI^2 for tunnel navigation
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 from pylab import *
@@ -25,15 +32,20 @@ object, tunnel_upr an array containing information for the upper part of the tun
 for tunnel lower.
 
 rollout(U)
--performs K rollouts of the system where U is the intial starting vector
+-performs K rollouts of the system where U is the intial starting vector, rollouts and
+averaging are done on the GPU.
 
 calc_path(max = 2500)
-
--performs trials of the system until convergence, max is the maximum number of trials 
-the program will perform until it gives up.
+-Performs iterations of the system until a solution appears. This amounts to calling rollout(U), and then checking if
+the path returned by rollout is a solution or not. By default the algorithm terminates itself after 2500 rollouts, it
+also prints out what iterations the program is on.
 """
 class PI2:
-
+    
+    """
+    Initializes the PI^2 class, compiles all the CUDA code and stores them into
+    self.funcs
+    """
     def __init__(self,T, K, horiz_vel, gravity, obj_width, obj_height, 
                  init_pos,block_width, tunnel_upr, tunnel_lwr, height):
         self.init_pos = init_pos
@@ -135,23 +147,30 @@ class PI2:
             cuda.Context.synchronize()
         return out_d
 
+    """
+    Calculates a set of acceleration vectors that
+    will guide the object through the tunnel
+    """
     def calc_path(self, var, max = 1000, plot=False):
-        print self.obj_width
+        #Initialize a set of control vectors on the GPU
         U_d = gpuarray.zeros(self.T, dtype=np.float32) + .5
-        U_TRIALS = []
         k = 0
         sum = 1000
+        #Performs iterations on PI^2 until a solution appears or the
+        #maximum number of allowed rollouts is hit
         while(sum >= 1000 and k < max):
-            print k
+            #Perform a trial
             U_d = self.rollout(U_d, var)
+            #Get a numpy array of the controls from the gpuarray
             U_final = U_d.get()
             z = np.array([[self.init_pos[0], self.init_pos[1]], [self.speed, 0]])
             sum = 0
+            #Check if the controls is a solution
             for t in range(self.T):
                 crash = False
                 x_pos = z[0,0]
                 x_pos_floor = x_pos
-                x_pos_ceil = (x_pos + self.obj_width)
+                x_pos_ceil = min(20,(x_pos + self.obj_width))
                 x_pc_floor = math.floor(x_pos_floor)
                 x_pc_ceil = math.floor(x_pos_ceil)
                 y_top = z[0,1]
@@ -176,22 +195,17 @@ class PI2:
                 if (z[0,1] >= self.height):
                     z[0,1] = self.height
                     z[1,1] = 0
-            if (k % 10 == 0):
-                U_TRIALS.append(U_final)
             k += 1
-        U_TRIALS.append(U_final)
-        print k
-        if (k < 61):
-            ind = 0
-            for U in U_TRIALS:
-                name = "demo" + str(ind) + ".pkl"
-                ind += 1
-                output = open(name, 'wb')
-                pickle.dump(U, output)
-                output.close()
-                self.plotter(U)
+            #print the iteration number
+            print k
+        #plot the controls
+        self.plotter(U_final)
         return U_final
     
+    """
+    This function uses matplotlib to plot a ball going through the given
+    tunnel. 
+    """
     def plotter(self, U_final):
         gca()
         obj_width = self.obj_width
@@ -199,7 +213,7 @@ class PI2:
         blocks = int(math.floor(round((self.T*self.speed/self.block_width *1.0))))
         for j in range(blocks):
             gca().add_patch(Rectangle((j*self.block_width, 0), self.block_width, self.t_lwr[j]))
-            gca().add_patch(Rectangle((j*self.block_width, self.t_upr[j]), self.block_width, self.height - self.t_upr[j]))
+            gca().add_patch(Rectangle((j*self.block_width, self.t_upr[j]), self.block_width, self.height- self.t_upr[j]))
         z = np.array([[self.init_pos[0], self.init_pos[1]], [self.speed, 0]])
         plt.scatter(z[0,0],z[0,1], c = 'b')
         for t in range(self.T):
@@ -208,7 +222,7 @@ class PI2:
             x_pos_floor = x_pos
             x_pos_ceil = x_pos + obj_width
             x_pc_floor = math.floor(x_pos_floor)
-            x_pc_ceil = math.floor(x_pos_ceil)
+            x_pc_ceil = min(20,math.floor(x_pos_ceil))
             y_top = z[0,1]
             y_bottom = y_top - self.obj_height
             if (self.t_upr[x_pc_floor] < y_top):
@@ -224,9 +238,6 @@ class PI2:
                 z[1,1] = 0
             if (not crash):
                 z[1,1] += self.gravity + U_final[t]
-                if (t < 10):
-                    print 5*U_final[t]
-                    print 5*(-self.gravity - U_final[t])
                 z[0,0] += z[1,0]
                 z[0,1] += z[1,1]
             if (z[0,1] <= 0):
@@ -237,9 +248,12 @@ class PI2:
                 z[1,1] = 0
             plt.scatter(z[0,0],z[0,1], c = 'b')
         plt.show()
-        print
 
 
+    """
+    func1, CUDA function. This function computes many rollouts of the system,
+    up to 60,000 rollouts can be performed.
+    """
     def func1(self,T,length,end_goal):
         template = """
 
@@ -267,23 +281,23 @@ class PI2:
       float bl = course_lwr[x_pc_floor];
       float br = course_lwr[x_pc_ceil];
       if (tl <= y_top) {
-        crash += y_top - tl;
+        crash += 1;
       }
       else if (tr <= y_top) {
-        crash += y_top - tr;
+        crash += 1;
       }
       else if (bl >= y_bottom) {
-        crash += bl - y_bottom;
+        crash += 1;
       }
       else if (course_lwr[x_pc_ceil] >= y_bottom) {
-        crash += br - y_bottom;
+        crash += 1;
       }
       return crash;
    }
     __device__ float get_cost(float x, float y, float u) {
       float cost = 0;
       float crash = test_crash(x,y);
-      cost = 1.0*crash;
+      cost = 10.0*crash + u*u;
       return cost;
     }
 
@@ -353,6 +367,9 @@ class PI2:
         course_upr = mod.get_global("course_upr")[0]
         return func, U_d,course_lwr, course_upr
 
+    """
+    Computes the cost-to-go functions and takes the negative exponential of each cost-to-go functions
+    """
     def func2(self,T):
         template = """
 
@@ -385,7 +402,10 @@ class PI2:
         mod = SourceModule(template)
         func = mod.get_function("cost_to_go")
         return func
-
+    
+    """
+    Computes the normalizing term for PI^2
+    """
     def func3(self):
         template = """
     __global__ void reduction_kernel(float* in_d, float* out_d, int y_len, int x_len)
@@ -420,7 +440,10 @@ class PI2:
     """
         mod = SourceModule(template)
         return mod.get_function("reduction_kernel")
-
+    
+    """
+    Averages all of the paths together
+    """
     def func4(self):
         template = """
     __global__ void multiplier(float *normalizer, float* controls, float* states_d, int x_len, int y_len)
@@ -443,6 +466,7 @@ class PI2:
         return mod.get_function("multiplier")
 
 if __name__ == "__main__":
+    #main runs a quick demo of PI^2 for a simple tunnel and a point object.
     T = 400
     K = 10000
     v = .05

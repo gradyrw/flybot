@@ -1,3 +1,12 @@
+"""
+Grady Williams
+March 1, 2013
+
+Box Sprite class, draws a box on the screen and moves then
+according to a certain velocity.
+"""
+
+
 import pygame
 import math
 

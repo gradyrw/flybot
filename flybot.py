@@ -1,3 +1,14 @@
+"""
+Grady Williams
+gradyrw@gmail.com
+March 1, 2013
+flybot
+
+Demonstration of PI^2 algorithm applied to tunnel navigation. This program takes
+a tunnel as input, and uses PI^2 to determine a set of acceleration controls
+to navigate the tunnel. The result of the determined set of controls is 
+displayed as an animation.
+"""
 import pygame
 import numpy as np
 from pygame.locals import *
@@ -8,24 +19,22 @@ from block import Box
 import time as timer
 import sys
 
+
+"""
+Height and width: adjust these according to your screen resolution
+"""
 HEIGHT = 1080
 WIDTH = 1920
 """
 Define the horizontal veloctiy and vertical dynamics parameters
 
-meters_per_screen = the number of meters displayed on a full screen
-mps = the number of meters to traverse in one second
-refresh_rate = number of times (in milliseconds) the screen is refreshed
+meters_per_vert/horiz_screen = the number of meters displayed on a full screen
+pixels_per_horiz/vert_meter = the number of pixels per meter
 
-meters_per_horiz_screen
-meters_per_vert_screen
-mps = meters per second
-gravity = -10 m/s^2
-
-fps = frames per second
-
-hPPM = horizontal pixels per frame
-vPPM = vertical pixels per frame
+mpf = meters per frame
+gpf = gravity per frame
+hPPF = horizontal pixels per frame for one unit of speed
+vPPF = vertical pixels per frame for one unit of speed
 """
 meters_per_horiz_screen = 5.0
 meters_per_vert_screen = 100.0
@@ -33,23 +42,55 @@ meters_per_vert_screen = 100.0
 pixels_per_horiz_meter = WIDTH/meters_per_horiz_screen
 pixels_per_vert_meter = HEIGHT/meters_per_vert_screen
 
-fps = 30
-
 mpf = .05
 gpf = .5
 hPPF = mpf * pixels_per_horiz_meter
 vPPF = gpf * pixels_per_vert_meter
 
-def main(mode = 'normal', name = 'std.pkl', animate=True):
+"""
+Defines the main loop of the tunnel navigation animation, requires a
+tunnel to navigate as input. "tunnel" is a tuple of two lists, the first
+element defines the upper part of the tunnel. The second defines the
+lower part of the tunnel. Each tunnel list should be 23 elements long, for the
+lower tunnel the elements in the list should be numbers describing how high
+the tunnel is at that index, and for the higher tunnel it describes how low
+the tunnel is. The overall height of the tunnel is the same as meters_per_vert_screen.
+
+------------------
+Optional Parameters
+-------------------
+
+(1) mode = 'normal', 'create', 'load
+
+normal: creates a bird object, gets controls for the bird from PI2, and then
+runs the animation if animate=True.
+
+create: creates a bird object, gets controls for the bird from PI2, and then 
+pickles the control and dumps them to a file name specified by 'name'.
+
+load: loads controls for a given tunnel from a pickled file, then runs the animation
+with those controls. Make sure the given tunnel is the same as the tunnel that
+was given to create the pickled file.
+
+(2) name = 'name'
+
+Name of the pickle file to either dump controls to, or load controls from.
+
+(3) animate = True/False
+
+Tells the program whether or not to run the animation.
+
+"""
+def main(tunnel, mode = 'normal', name = 'std.pkl', animate=True):
     pygame.init()
-    #Create the tunnel
-    tunnel_upr, tunnel_lwr = create_tunnel(21)
+    #Load the into CUDA readable format
+    tunnel_upr, tunnel_lwr = create_tunnel(tunnel)
     boxes = pygame.sprite.RenderUpdates()
     draw_tunnel(tunnel_upr, tunnel_lwr, boxes)
     #Initialize, create and store, or load the bird
     if (mode == 'normal' or mode == 'create'):
         b = bird(mpf, gpf, vPPF,pixels_per_vert_meter, 
-                 pixels_per_horiz_meter, HEIGHT, WIDTH, tunnel_upr,
+                 pixels_per_horiz_meter, HEIGHT, tunnel_upr,
                  tunnel_lwr)
         if (mode == 'create'):
             b.store(name)
@@ -95,13 +136,31 @@ def main(mode = 'normal', name = 'std.pkl', animate=True):
         birds.clear(screen, background)
         boxes.clear(screen,background)
 
-def create_tunnel(length):
-    tunnel_upr, tunnel_lwr = tunnel1()
+"""
+Loads the tunnel into a CUDA readable format
+"""
+def create_tunnel(tunnel):
+    tunnel_upr, tunnel_lwr = tunnel
     tunnel_upr = np.require(tunnel_upr, dtype=np.float32, requirements = ['A', 'O', 'W', 'C'])
     tunnel_lwr = np.require(tunnel_lwr, dtype = np.float32, requirements = ['A','O','W','C'])
     return tunnel_upr, tunnel_lwr
 
-def tunnel1():
+"""
+Draws the tunnel animation onto the screen
+"""
+def draw_tunnel(tunnel_upr, tunnel_lwr,boxes):
+    for x in range(len(tunnel_lwr)):
+        ceil = HEIGHT - tunnel_upr[x] * pixels_per_vert_meter
+        floor = tunnel_lwr[x] * pixels_per_vert_meter
+        ceiling_b = Box((x*pixels_per_horiz_meter, 0), int(ceil), int(pixels_per_horiz_meter))
+        floor_b = Box((x*pixels_per_horiz_meter, HEIGHT - floor), int(floor),int(pixels_per_horiz_meter))
+        boxes.add(floor_b)
+        boxes.add(ceiling_b)
+
+"""
+Defines a hard tunnel to navigate
+"""
+def tunnel3():
     tunnel_upr = np.zeros(23)
     tunnel_lwr = np.zeros(23)
     for x in range(23):
@@ -120,6 +179,9 @@ def tunnel1():
         tunnel_lwr[x] = 60
     return tunnel_upr, tunnel_lwr
 
+"""
+Defines a medium difficulty tunnel to navigate
+"""
 def tunnel2():
     tunnel_upr = np.zeros(23)
     tunnel_lwr = np.zeros(23)
@@ -168,63 +230,46 @@ def tunnel2():
     tunnel_upr[22] = 75
     return tunnel_upr, tunnel_lwr
 
-def tunnel3():
+"""
+Defines an easy tunnel to navigate
+"""
+def tunnel1():
     tunnel_upr = np.zeros(23)
     tunnel_lwr = np.zeros(23)
-    for x in range(3):
-        tunnel_lwr[x] = 20
-        tunnel_upr[x] = 80
-    tunnel_lwr[3] = 20 
-    tunnel_upr[3] = 80
-    tunnel_lwr[4] = 20 
-    tunnel_upr[4] = 70
-    tunnel_lwr[5] = 20
-    tunnel_upr[5] = 60
-    tunnel_lwr[6] = 20
-    tunnel_upr[6] = 50
-    tunnel_lwr[7] = 20
-    tunnel_upr[7] = 60
-    tunnel_lwr[8] = 20
-    tunnel_upr[8] = 70
-    tunnel_lwr[9] = 20
-    tunnel_upr[9] = 80
-    tunnel_lwr[10] = 30
-    tunnel_upr[10] = 80
-    tunnel_lwr[11] = 40
-    tunnel_upr[11] = 80
-    tunnel_lwr[12] = 40
-    tunnel_upr[12] = 80
-    tunnel_lwr[13] = 20
-    tunnel_upr[13] = 80
-    tunnel_lwr[14] = 20
-    tunnel_upr[14] = 70
-    tunnel_lwr[15] = 20
-    tunnel_upr[15] = 60
-    tunnel_lwr[16] = 10
-    tunnel_upr[16] = 50
-    tunnel_lwr[17] = 10
-    tunnel_upr[17] = 40
-    tunnel_lwr[18] = 10
-    tunnel_upr[18] = 50
-    tunnel_lwr[19] = 10
-    tunnel_upr[19] = 60
-    tunnel_lwr[20] = 10
-    tunnel_upr[20] = 70
-    tunnel_lwr[21] = 10
-    tunnel_upr[21] = 80
-    tunnel_lwr[22] = 10
-    tunnel_upr[22] = 80
+    for i in range(23):
+        tunnel_lwr[i] = 10
+        tunnel_upr[i] = 100 - (80*i/23.0)
     return tunnel_upr, tunnel_lwr
-    
 
-def draw_tunnel(tunnel_upr, tunnel_lwr,boxes):
-    for x in range(len(tunnel_lwr)):
-        ceil = HEIGHT - tunnel_upr[x] * pixels_per_vert_meter
-        floor = tunnel_lwr[x] * pixels_per_vert_meter
-        ceiling_b = Box((x*pixels_per_horiz_meter, 0), int(ceil), int(pixels_per_horiz_meter))
-        floor_b = Box((x*pixels_per_horiz_meter, HEIGHT - floor), int(floor),int(pixels_per_horiz_meter))
-        boxes.add(floor_b)
-        boxes.add(ceiling_b)
+"""
+Below are functions for running various pickled examples on non-cuda computers
+"""
+#Run tunnel1 on a 768x1366 display
+def run_768_tunnel1():
+    main(tunnel1(), mode='load', name = 'tunnel1_768,1366ex.pkl')
 
+#run tunnel 2 ...   
+def run_768_tunnel2():
+    main(tunnel2(), mode='load', name = 'tunnel2_768,1366ex.pkl')
+
+#run tunnel 3 ...
+def run_768_tunnel3():
+    main(tunnel3(), mode='load', name = 'tunnel3_768,1366ex.pkl')
+
+#Run tunnel1 on a 1080x1920 display
+def run_1080_tunnel1():
+    main(tunnel1(), mode='load', name = 'tunnel1_1080,1920ex.pkl')
+
+#run tunnel 2 ...   
+def run_1080_tunnel2():
+    main(tunnel2(), mode='load', name = 'tunnel2_1080,1920ex.pkl')
+
+#run tunnel 3 ...
+def run_1080_tunnel3():
+    main(tunnel3(), mode='load', name = 'tunnel3_1080.1920ex.pkl')
+
+"""
+Main runs an animation for easy hard tunnel
+"""
 if __name__ == "__main__":
-    main(mode = 'create', name = 'demo70.pkl', animate=False)
+    main(tunnel1(), mode = 'create', name = "tunnel1_1080,1920ex.pkl", animate=False)
