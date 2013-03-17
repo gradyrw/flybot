@@ -14,7 +14,7 @@ class Box(pygame.sprite.Sprite):
     
     def __init__(self, initial_pos, height, width):
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.Surface([width,height])
+        self.image = pygame.Surface([width + 2,height])
         self.image.fill(pygame.Color('green'))
         self.rect = self.image.get_rect()
         self.rect.topleft = initial_pos

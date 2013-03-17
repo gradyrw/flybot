@@ -13,7 +13,9 @@ import pygame
 import numpy as np
 from pygame.locals import *
 from random import randint
-from bird import bird
+try:
+    from bird import bird
+except: ImportError
 from pickled_bird import p_bird
 from block import Box
 import time as timer
@@ -23,8 +25,8 @@ import sys
 """
 Height and width: adjust these according to your screen resolution
 """
-HEIGHT = 1080
-WIDTH = 1920
+HEIGHT = 768
+WIDTH = 1366
 """
 Define the horizontal veloctiy and vertical dynamics parameters
 
@@ -242,34 +244,17 @@ def tunnel1():
     return tunnel_upr, tunnel_lwr
 
 """
-Below are functions for running various pickled examples on non-cuda computers
-"""
-#Run tunnel1 on a 768x1366 display
-def run_768_tunnel1():
-    main(tunnel1(), mode='load', name = 'tunnel1_768,1366ex.pkl')
-
-#run tunnel 2 ...   
-def run_768_tunnel2():
-    main(tunnel2(), mode='load', name = 'tunnel2_768,1366ex.pkl')
-
-#run tunnel 3 ...
-def run_768_tunnel3():
-    main(tunnel3(), mode='load', name = 'tunnel3_768,1366ex.pkl')
-
-#Run tunnel1 on a 1080x1920 display
-def run_1080_tunnel1():
-    main(tunnel1(), mode='load', name = 'tunnel1_1080,1920ex.pkl')
-
-#run tunnel 2 ...   
-def run_1080_tunnel2():
-    main(tunnel2(), mode='load', name = 'tunnel2_1080,1920ex.pkl')
-
-#run tunnel 3 ...
-def run_1080_tunnel3():
-    main(tunnel3(), mode='load', name = 'tunnel3_1080.1920ex.pkl')
-
-"""
-Main runs an animation for easy hard tunnel
+Main runs some pre-computed demonstration by loading pickled files.
 """
 if __name__ == "__main__":
-    main(tunnel1(), mode = 'create', name = "tunnel1_1080,1920ex.pkl", animate=False)
+    if (HEIGHT == 768):
+    #Run easy, medium, and hard tunnel on a 768x1366 display
+        main(tunnel1(), mode='load', name = 'tunnel1_768,1366ex.pkl')
+        main(tunnel2(), mode='load', name = 'tunnel2_768,1366ex.pkl')
+        main(tunnel3(), mode='load', name = 'tunnel3_768,1366ex.pkl')
+
+    else:
+    #Run easy, medium, and hard tunnel on a 1080x1920 display
+        main(tunnel1(), mode='load', name = 'tunnel1_1080,1920ex.pkl')
+        main(tunnel2(), mode='load', name = 'tunnel2_1080,1920ex.pkl')
+        main(tunnel3(), mode='load', name = 'tunnel3_1080,1920ex.pkl')
